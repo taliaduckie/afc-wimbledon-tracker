@@ -18,6 +18,9 @@ import csv
 import os
 from pathlib import Path
 
+from rich.console import Console
+from rich.table import Table
+
 CSV_PATH = Path(__file__).parent.parent / "data" / "restaurants.csv"
 FIELDS = ["name", "weeks_out", "walkin", "platform", "waitlist", "difficulty_score", "notes"]
 
@@ -41,16 +44,43 @@ def score(weeks_out: int, walkin: str, platform: str, waitlist: str) -> int:
     s += 1.5 if waitlist == "yes" else 0
     return round(min(s, 10), 1)
 
+def difficulty_color(score: float) -> str:
+    if score >= 7:
+        return "red"
+    if score >= 4:
+        return "yellow"
+    return "green"
+
+
 def list_restaurants():
     rows = load()
     if not rows:
         print("No restaurants tracked yet.")
         return
     rows_sorted = sorted(rows, key=lambda r: float(r["difficulty_score"]), reverse=True)
-    print(f"{'Name':<30} {'Difficulty':>10} {'Weeks':>6} {'Walk-in':>8}")
-    print("-" * 60)
+
+    console = Console()
+    table = Table(title="Restaurant Difficulty Index")
+    table.add_column("Name", style="bold")
+    table.add_column("Difficulty", justify="right")
+    table.add_column("Weeks Out", justify="right")
+    table.add_column("Walk-in", justify="center")
+    table.add_column("Platform", justify="center")
+    table.add_column("Notes", max_width=40)
+
     for r in rows_sorted:
-        print(f"{r['name']:<30} {r['difficulty_score']:>10} {r['weeks_out']:>6} {r['walkin']:>8}")
+        score = float(r["difficulty_score"])
+        color = difficulty_color(score)
+        table.add_row(
+            r["name"],
+            f"[{color}]{score}/10[/{color}]",
+            r["weeks_out"],
+            r["walkin"],
+            r.get("platform", ""),
+            r.get("notes", ""),
+        )
+
+    console.print(table)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

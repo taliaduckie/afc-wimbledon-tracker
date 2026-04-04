@@ -19,7 +19,7 @@ from rich.table import Table
 load_dotenv()
 
 API_KEY = os.getenv("FOOTBALL_DATA_API_KEY")
-TEAM_ID = 57  # AFC Wimbledon — verify this is current
+TEAM_ID = 347  # AFC Wimbledon
 BASE_URL = "https://api.football-data.org/v4"
 TEAM = "AFC Wimbledon"
 

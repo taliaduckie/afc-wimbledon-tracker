@@ -16,7 +16,7 @@ from pathlib import Path
 import requests
 
 TEAM = "AFC Wimbledon"
-LEAGUE = "E3"  # League Two
+LEAGUE = "E2"  # League One
 BASE_URL = "https://www.football-data.co.uk/mmz4281"
 DATA_PATH = Path(__file__).parent.parent / "data" / "results.json"
 
@@ -70,7 +70,7 @@ def summarize(row: dict) -> dict | None:
     }
 
 
-def fetch_matches(start_year: int = 2024) -> list[dict]:
+def fetch_matches(start_year: int = 2025) -> list[dict]:
     rows = fetch_season_csv(start_year)
     matches = [summarize(r) for r in rows]
     return [m for m in matches if m is not None]

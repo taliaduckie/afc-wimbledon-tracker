@@ -26,9 +26,9 @@ def season_code(start_year: int) -> str:
     return f"{start_year % 100:02d}{(start_year + 1) % 100:02d}"
 
 
-def fetch_season_csv(start_year: int) -> list[dict]:
+def fetch_season_csv(start_year: int, league: str = LEAGUE) -> list[dict]:
     """Download and parse one season's CSV."""
-    url = f"{BASE_URL}/{season_code(start_year)}/{LEAGUE}.csv"
+    url = f"{BASE_URL}/{season_code(start_year)}/{league}.csv"
     resp = requests.get(url)
     resp.raise_for_status()
     reader = csv.DictReader(io.StringIO(resp.text))
@@ -70,14 +70,23 @@ def summarize(row: dict) -> dict | None:
     }
 
 
-def fetch_matches(start_year: int = 2025) -> list[dict]:
-    rows = fetch_season_csv(start_year)
+def fetch_matches(start_year: int = 2025, league: str = LEAGUE) -> list[dict]:
+    rows = fetch_season_csv(start_year, league)
     matches = [summarize(r) for r in rows]
     return [m for m in matches if m is not None]
 
 
 if __name__ == "__main__":
-    matches = fetch_matches()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--season", type=int, default=2025,
+                        help="Season start year, e.g. 2024 for 2024/25 (default: 2025)")
+    parser.add_argument("--league", default=LEAGUE,
+                        help="League code: E0=PL, E1=Championship, E2=League One, E3=League Two (default: E2)")
+    args = parser.parse_args()
+
+    matches = fetch_matches(args.season, args.league)
     matches.sort(key=lambda m: m["date"])
     DATA_PATH.parent.mkdir(exist_ok=True)
     with open(DATA_PATH, "w") as f:

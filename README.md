@@ -21,29 +21,36 @@ signal — often more informative than review scores.
 
 ```bash
 pip install -r requirements.txt
-python src/fetch_results.py
+python -m src afc fetch
 ```
 
 ## Usage
 
-### Football
+### Unified CLI
 
 ```bash
-python src/fetch_results.py              # fetch match results
-python src/league_table.py               # season summary (P/W/D/L/GF/GA/GD/Pts)
-python src/league_table.py --last 10     # form over last N matches
-python src/opponent_stats.py             # record by opponent
-python src/opponent_stats.py --top 5     # 5 hardest opponents
-python src/opponent_stats.py --big-results  # biggest wins and losses
-python src/fixtures.py                   # upcoming fixtures
-python src/fixtures.py --next 3          # next N fixtures
+# Football
+python -m src afc fetch                        # fetch current season results
+python -m src afc fetch --season 2024 --league E3  # historical (League Two 2024/25)
+python -m src afc table                        # season summary
+python -m src afc table --last 10              # last N matches
+python -m src afc opponents                    # record by opponent
+python -m src afc opponents --top 5            # hardest opponents
+python -m src afc opponents --big-results      # biggest wins and losses
+python -m src afc fixtures                     # upcoming fixtures
+python -m src afc fixtures --next 3            # next N fixtures
+
+# Restaurants
+python -m src restaurant list
+python -m src restaurant add "Chez Panisse" --weeks 6 --walkin no --platform resy --waitlist yes
+python -m src restaurant update "Chez Panisse" --weeks 4
+python -m src restaurant remove "Chez Panisse"
 ```
 
-### Restaurants
+### Streamlit Dashboard
 
 ```bash
-python src/restaurant_score.py --list
-python src/restaurant_score.py --add "Chez Panisse" --weeks 6 --walkin no --platform resy --waitlist yes
+streamlit run app.py
 ```
 
 ### Tests
@@ -60,8 +67,10 @@ pytest tests/
 ## Project Structure
 ```
 afc-wimbledon-tracker/
+├── app.py                    # Streamlit dashboard
 ├── src/
-│   ├��─ fetch_results.py      # pull match results from CSV
+│   ├── __main__.py           # unified CLI entrypoint
+│   ├── fetch_results.py      # pull match results from CSV
 │   ├── league_table.py       # season summary with rich tables
 │   ├── opponent_stats.py     # per-opponent record and big results
 │   ├── fixtures.py           # upcoming fixtures from TheSportsDB

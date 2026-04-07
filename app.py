@@ -17,6 +17,35 @@ TEAM = "AFC Wimbledon"
 
 st.set_page_config(page_title="Wombles Tracker", page_icon="\u26bd", layout="wide")
 
+# AFC Wimbledon colors
+BLUE = "#003DA5"
+YELLOW = "#FFD700"
+
+st.markdown(f"""
+<style>
+    .stApp {{
+        background-color: #f5f7fa;
+    }}
+    header[data-testid="stHeader"] {{
+        background-color: {BLUE};
+    }}
+    h1 {{
+        color: {BLUE} !important;
+    }}
+    h2 {{
+        color: {BLUE} !important;
+        border-bottom: 3px solid {YELLOW};
+        padding-bottom: 0.3em;
+    }}
+    .stMetric label {{
+        color: {BLUE} !important;
+    }}
+    div[data-testid="stMetricValue"] {{
+        color: {BLUE} !important;
+    }}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("\u26bd AFC Wimbledon Tracker")
 st.caption("GO WOMBLES")
 
@@ -58,7 +87,7 @@ df["points"] = df["result"].map({"W": 3, "D": 1, "L": 0})
 df["cum_pts"] = df["points"].cumsum()
 
 fig, ax = plt.subplots(figsize=(10, 3.5))
-ax.plot(df["date"], df["cum_pts"], marker="o", markersize=3, color="#1f77b4")
+ax.plot(df["date"], df["cum_pts"], marker="o", markersize=3, color=BLUE)
 ax.set_ylabel("Points")
 ax.grid(True, alpha=0.3)
 plt.tight_layout()
@@ -70,9 +99,9 @@ df["gd"] = df["gf"] - df["ga"]
 df["cum_gd"] = df["gd"].cumsum()
 
 fig, ax = plt.subplots(figsize=(10, 3.5))
-colors = df["gd"].apply(lambda x: "green" if x > 0 else ("red" if x < 0 else "gray"))
+colors = df["gd"].apply(lambda x: BLUE if x > 0 else (YELLOW if x < 0 else "#cccccc"))
 ax.bar(df["date"], df["gd"], color=colors, width=2)
-ax.plot(df["date"], df["cum_gd"], color="black", linewidth=1.5, label="Cumulative GD")
+ax.plot(df["date"], df["cum_gd"], color=BLUE, linewidth=1.5, label="Cumulative GD")
 ax.axhline(0, color="gray", linewidth=0.5)
 ax.legend()
 ax.grid(True, alpha=0.3)
@@ -84,10 +113,10 @@ st.header("Rolling Form (5-match PPG)")
 df["rolling_ppg"] = df["points"].rolling(5, min_periods=1).mean() * 3
 
 fig, ax = plt.subplots(figsize=(10, 3.5))
-ax.fill_between(df["date"], df["rolling_ppg"], alpha=0.3, color="blue")
-ax.plot(df["date"], df["rolling_ppg"], color="blue", linewidth=1.5)
-ax.axhline(2.0, color="green", linestyle="--", alpha=0.5, label="Promotion pace (~2 PPG)")
-ax.axhline(1.0, color="red", linestyle="--", alpha=0.5, label="Relegation pace (~1 PPG)")
+ax.fill_between(df["date"], df["rolling_ppg"], alpha=0.2, color=BLUE)
+ax.plot(df["date"], df["rolling_ppg"], color=BLUE, linewidth=1.5)
+ax.axhline(2.0, color=YELLOW, linestyle="--", linewidth=2, alpha=0.8, label="Promotion pace (~2 PPG)")
+ax.axhline(1.0, color="#cc0000", linestyle="--", alpha=0.5, label="Relegation pace (~1 PPG)")
 ax.set_ylabel("PPG (scaled to 3)")
 ax.set_ylim(0, 3)
 ax.legend()

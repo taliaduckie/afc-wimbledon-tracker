@@ -50,14 +50,20 @@ def main():
         return
 
     if args.action == "fetch":
-        from src.fetch_results import fetch_matches, DATA_PATH
+        from src.fetch_results import fetch_season_csv, summarize, build_standings, DATA_DIR, DATA_PATH, STANDINGS_PATH
         import json
-        matches = fetch_matches(args.season, args.league)
+        rows = fetch_season_csv(args.season, args.league)
+        matches = [summarize(r) for r in rows]
+        matches = [m for m in matches if m is not None]
         matches.sort(key=lambda m: m["date"])
-        DATA_PATH.parent.mkdir(exist_ok=True)
+        DATA_DIR.mkdir(exist_ok=True)
         with open(DATA_PATH, "w") as f:
             json.dump(matches, f, indent=2)
         print(f"Saved {len(matches)} matches to {DATA_PATH}")
+        standings = build_standings(rows)
+        with open(STANDINGS_PATH, "w") as f:
+            json.dump(standings, f, indent=2)
+        print(f"Saved {len(standings)}-team standings to {STANDINGS_PATH}")
 
     elif args.action == "table":
         from src.league_table import load_results, build_table, display, form_string

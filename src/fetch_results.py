@@ -72,6 +72,52 @@ def summarize(row: dict) -> dict | None:
     }
 
 
+def build_standings(rows: list[dict]) -> list[dict]:
+    """Build a full league table from all matches in the CSV."""
+    teams: dict[str, dict] = {}
+    for row in rows:
+        home = row.get("HomeTeam", "")
+        away = row.get("AwayTeam", "")
+        if not home or not away:
+            continue
+        hg = int(row["FTHG"])
+        ag = int(row["FTAG"])
+        ftr = row["FTR"]
+
+        for name in (home, away):
+            if name not in teams:
+                teams[name] = {"team": name, "P": 0, "W": 0, "D": 0, "L": 0, "GF": 0, "GA": 0}
+
+        teams[home]["P"] += 1
+        teams[away]["P"] += 1
+        teams[home]["GF"] += hg
+        teams[home]["GA"] += ag
+        teams[away]["GF"] += ag
+        teams[away]["GA"] += hg
+
+        if ftr == "H":
+            teams[home]["W"] += 1
+            teams[away]["L"] += 1
+        elif ftr == "A":
+            teams[away]["W"] += 1
+            teams[home]["L"] += 1
+        else:
+            teams[home]["D"] += 1
+            teams[away]["D"] += 1
+
+    table = []
+    for t in teams.values():
+        t["GD"] = t["GF"] - t["GA"]
+        t["Pts"] = t["W"] * 3 + t["D"]
+        table.append(t)
+
+    table.sort(key=lambda t: (-t["Pts"], -t["GD"], -t["GF"]))
+    for i, t in enumerate(table, 1):
+        t["Pos"] = i
+
+    return table
+
+
 def fetch_matches(start_year: int = 2025, league: str = LEAGUE) -> list[dict]:
     rows = fetch_season_csv(start_year, league)
     matches = [summarize(r) for r in rows]
@@ -88,9 +134,17 @@ if __name__ == "__main__":
                         help="League code: E0=PL, E1=Championship, E2=League One, E3=League Two (default: E2)")
     args = parser.parse_args()
 
-    matches = fetch_matches(args.season, args.league)
+    rows = fetch_season_csv(args.season, args.league)
+
+    matches = [summarize(r) for r in rows]
+    matches = [m for m in matches if m is not None]
     matches.sort(key=lambda m: m["date"])
-    DATA_PATH.parent.mkdir(exist_ok=True)
+    DATA_DIR.mkdir(exist_ok=True)
     with open(DATA_PATH, "w") as f:
         json.dump(matches, f, indent=2)
     print(f"Saved {len(matches)} matches to {DATA_PATH}")
+
+    standings = build_standings(rows)
+    with open(STANDINGS_PATH, "w") as f:
+        json.dump(standings, f, indent=2)
+    print(f"Saved {len(standings)}-team standings to {STANDINGS_PATH}")

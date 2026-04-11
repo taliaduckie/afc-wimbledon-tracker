@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 DATA_DIR = Path(__file__).parent / "data"
 RESULTS_PATH = DATA_DIR / "results.json"
+STANDINGS_PATH = DATA_DIR / "standings.json"
 BADGES_PATH = DATA_DIR / "badges.json"
 TEAM = "AFC Wimbledon"
 
@@ -132,6 +133,30 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 st.title("\u26bd AFC Wimbledon Tracker")
+
+# Position tag
+standings = []
+wimbledon_pos = None
+if STANDINGS_PATH.exists():
+    with open(STANDINGS_PATH) as f:
+        standings = json.load(f)
+    for row in standings:
+        if TEAM in row.get("team", ""):
+            wimbledon_pos = row
+            break
+
+if wimbledon_pos:
+    pos = wimbledon_pos["Pos"]
+    suffix = {1: "st", 2: "nd", 3: "rd"}.get(pos if pos < 20 else pos % 10, "th")
+    st.markdown(
+        f'<div style="display:inline-block; background:{BLUE}; color:{YELLOW}; '
+        f'padding:6px 16px; border-radius:20px; font-weight:bold; font-size:1.1em; margin-bottom:10px;">'
+        f'{pos}{suffix} in League One &bull; {wimbledon_pos["Pts"]} pts &bull; '
+        f'GD {wimbledon_pos["GD"]:+d}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
 st.caption("GO WOMBLES")
 
 if not RESULTS_PATH.exists():
@@ -207,6 +232,21 @@ with left:
         l = (sub["result"] == "L").sum()
         col.subheader(venue)
         col.write(f"**{len(sub)}** played: {w}W {d}D {l}L ({w*3+d} pts)")
+
+    # --- League Standings ---
+    if standings:
+        st.header("League Standings")
+        st_df = pd.DataFrame(standings)
+        st_df = st_df[["Pos", "team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"]]
+        st_df.columns = ["#", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"]
+
+        def highlight_wimbledon(row):
+            if TEAM in row["Team"]:
+                return [f"background-color: {BLUE}; color: {YELLOW}; font-weight: bold"] * len(row)
+            return [""] * len(row)
+
+        styled = st_df.style.apply(highlight_wimbledon, axis=1).format({"GD": "{:+d}"})
+        st.dataframe(styled, use_container_width=True, hide_index=True, height=min(len(standings) * 35 + 40, 900))
 
     # --- Opponent records ---
     st.header("Record by Opponent")

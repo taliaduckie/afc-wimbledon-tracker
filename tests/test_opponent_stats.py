@@ -77,3 +77,15 @@ def test_records_gillingham():
     assert r["W"] == 1
     assert r["GF"] == 2
     assert r["GA"] == 0
+
+
+def test_records_empty():
+    records = build_opponent_records([])
+    assert records == {}
+
+
+def test_records_single_match():
+    single = [SAMPLE_RESULTS[0]]
+    records = build_opponent_records(single)
+    assert len(records) == 1
+    assert "Crawley Town" in records

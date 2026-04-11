@@ -57,6 +57,15 @@ def test_non_wimbledon_match_returns_none():
     assert s is None
 
 
+def test_malformed_date_falls_back():
+    s = summarize(_make_row("AFC Wimbledon", "Crawley Town", 1, 0, "H", date="not-a-date"))
+    assert s["date"] == "not-a-date"
+
+
 def test_season_code():
     assert season_code(2024) == "2425"
     assert season_code(1999) == "9900"
+
+
+def test_season_code_century():
+    assert season_code(2000) == "0001"

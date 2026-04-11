@@ -182,6 +182,21 @@ with left:
     form = "".join(df["result"].tail(5).tolist())
     st.markdown(f"**Form (last 5):** `{form}`")
 
+    # --- W/D/L bar chart ---
+    fig, ax = plt.subplots(figsize=(6, 2.5))
+    bars = ax.bar(
+        ["Wins", "Draws", "Losses"],
+        [wins, draws, losses],
+        color=["#28a745", "#ffc107", "#dc3545"],
+    )
+    ax.bar_label(bars, fontweight="bold")
+    ax.set_ylim(0, max(wins, draws, losses) * 1.2)
+    ax.set_ylabel("Matches")
+    ax.grid(True, axis="y", alpha=0.3)
+    ax.set_axisbelow(True)
+    plt.tight_layout()
+    st.pyplot(fig)
+
     # --- Home vs Away ---
     st.header("Home vs Away")
     col1, col2 = st.columns(2)

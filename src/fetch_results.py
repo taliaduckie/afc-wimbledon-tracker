@@ -18,7 +18,9 @@ import requests
 TEAM = "AFC Wimbledon"
 LEAGUE = "E2"  # League One
 BASE_URL = "https://www.football-data.co.uk/mmz4281"
-DATA_PATH = Path(__file__).parent.parent / "data" / "results.json"
+DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_PATH = DATA_DIR / "results.json"
+STANDINGS_PATH = DATA_DIR / "standings.json"
 
 
 def season_code(start_year: int) -> str:

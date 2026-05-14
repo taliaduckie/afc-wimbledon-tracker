@@ -8,8 +8,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from fetch_results import build_standings
 
 
-def _row(home, away, hg, ag, ftr):
-    return {"HomeTeam": home, "AwayTeam": away, "FTHG": str(hg), "FTAG": str(ag), "FTR": ftr}
+def _row(home, away, hg, ag, ftr, date=""):
+    return {"HomeTeam": home, "AwayTeam": away, "FTHG": str(hg), "FTAG": str(ag), "FTR": ftr, "Date": date}
 
 
 SAMPLE_ROWS = [
@@ -125,6 +125,44 @@ def test_standings_all_draws():
     b = next(t for t in table if t["team"] == "B")
     assert a["Pts"] == b["Pts"] == 2
     assert a["W"] == b["W"] == 0
+
+
+# --- form ---
+
+def test_standings_form_last_five():
+    """Form should be the last 5 results in chronological order."""
+    rows = [
+        _row("A", "B", 1, 0, "H", "01/08/2024"),  # A W, B L
+        _row("A", "C", 2, 1, "H", "08/08/2024"),  # A W
+        _row("A", "D", 0, 0, "D", "15/08/2024"),  # A D
+        _row("E", "A", 1, 0, "H", "22/08/2024"),  # A L
+        _row("A", "F", 3, 1, "H", "29/08/2024"),  # A W
+        _row("G", "A", 2, 2, "D", "05/09/2024"),  # A D — 6th match, oldest 'W' drops off
+    ]
+    table = build_standings(rows)
+    a = next(t for t in table if t["team"] == "A")
+    assert a["Form"] == "WDLWD"
+
+
+def test_standings_form_shorter_than_five():
+    """Teams with fewer than 5 matches should have a shorter form string."""
+    rows = [_row("X", "Y", 1, 0, "H", "01/08/2024")]
+    table = build_standings(rows)
+    x = next(t for t in table if t["team"] == "X")
+    y = next(t for t in table if t["team"] == "Y")
+    assert x["Form"] == "W"
+    assert y["Form"] == "L"
+
+
+def test_standings_form_uses_date_order_not_row_order():
+    """Even if rows are passed out of order, form follows match date."""
+    rows = [
+        _row("A", "B", 3, 0, "H", "15/09/2024"),  # later
+        _row("A", "B", 0, 1, "A", "01/08/2024"),  # earlier
+    ]
+    table = build_standings(rows)
+    a = next(t for t in table if t["team"] == "A")
+    assert a["Form"] == "LW"
 
 
 def test_standings_skips_empty_team_names():

@@ -74,8 +74,18 @@ def summarize(row: dict) -> dict | None:
 
 def build_standings(rows: list[dict]) -> list[dict]:
     """Build a full league table from all matches in the CSV."""
+    # Sort by date so each team's form sequence is chronological. Rows without
+    # a parseable date keep their original order at the end.
+    def _date_key(row):
+        try:
+            return (0, datetime.strptime(row.get("Date", ""), "%d/%m/%Y"))
+        except ValueError:
+            return (1, datetime.min)
+
+    ordered_rows = sorted(rows, key=_date_key)
+
     teams: dict[str, dict] = {}
-    for row in rows:
+    for row in ordered_rows:
         home = row.get("HomeTeam", "")
         away = row.get("AwayTeam", "")
         if not home or not away:
@@ -86,7 +96,7 @@ def build_standings(rows: list[dict]) -> list[dict]:
 
         for name in (home, away):
             if name not in teams:
-                teams[name] = {"team": name, "P": 0, "W": 0, "D": 0, "L": 0, "GF": 0, "GA": 0}
+                teams[name] = {"team": name, "P": 0, "W": 0, "D": 0, "L": 0, "GF": 0, "GA": 0, "_form": []}
 
         teams[home]["P"] += 1
         teams[away]["P"] += 1
@@ -98,17 +108,24 @@ def build_standings(rows: list[dict]) -> list[dict]:
         if ftr == "H":
             teams[home]["W"] += 1
             teams[away]["L"] += 1
+            teams[home]["_form"].append("W")
+            teams[away]["_form"].append("L")
         elif ftr == "A":
             teams[away]["W"] += 1
             teams[home]["L"] += 1
+            teams[away]["_form"].append("W")
+            teams[home]["_form"].append("L")
         else:
             teams[home]["D"] += 1
             teams[away]["D"] += 1
+            teams[home]["_form"].append("D")
+            teams[away]["_form"].append("D")
 
     table = []
     for t in teams.values():
         t["GD"] = t["GF"] - t["GA"]
         t["Pts"] = t["W"] * 3 + t["D"]
+        t["Form"] = "".join(t.pop("_form")[-5:])
         table.append(t)
 
     table.sort(key=lambda t: (-t["Pts"], -t["GD"], -t["GF"]))

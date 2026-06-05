@@ -85,16 +85,23 @@ def _save(path: Path, data) -> None:
 
 
 def fetch_and_record(date: str | None = None) -> tuple[list[dict], list[dict]]:
-    """Fetch latest squad, diff vs snapshot, append moves -> (squad, new_moves)"""
+    """Fetch latest squad, diff vs snapshot, append moves -> (squad, new_moves)
+
+    The first ever fetch just sets a baseline — no prior snapshot means we
+    can't tell arrivals from the existing squad, so nothing is recorded
+    """
     date = date or datetime.now().strftime("%Y-%m-%d")
     new = fetch_squad()
+    had_snapshot = SQUAD_PATH.exists()
     old = load_squad()
-    arrivals, departures = diff_squads(old, new)
-    moves = build_moves(arrivals, departures, date)
-    if moves:
-        log = load_transfers()
-        log.extend(moves)
-        _save(TRANSFERS_PATH, log)
+    moves = []
+    if had_snapshot:
+        arrivals, departures = diff_squads(old, new)
+        moves = build_moves(arrivals, departures, date)
+        if moves:
+            log = load_transfers()
+            log.extend(moves)
+            _save(TRANSFERS_PATH, log)
     _save(SQUAD_PATH, new)
     return new, moves
 

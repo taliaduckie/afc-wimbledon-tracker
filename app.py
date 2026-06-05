@@ -270,11 +270,6 @@ with left:
         st_df = st_df[["Pos", "team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts", "Form"]]
         st_df.columns = ["#", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts", "Form"]
 
-        # League One zones (matches src/standings.py)
-        AUTO_PROMOTION = (1, 2)
-        PLAYOFFS = (3, 6)
-        RELEGATION_START = 21
-
         def zone_style(pos):
             if AUTO_PROMOTION[0] <= pos <= AUTO_PROMOTION[1]:
                 return "background-color: #d4f7d4"  # auto promotion
@@ -295,6 +290,47 @@ with left:
             ":green[**auto promotion** (1–2)] &nbsp;•&nbsp; :green[playoffs (3–6)] "
             "&nbsp;•&nbsp; :red[relegation (21–24)]"
         )
+
+    # --- Squad & Transfers ---
+    squad = []
+    if SQUAD_PATH.exists():
+        with open(SQUAD_PATH) as f:
+            squad = json.load(f)
+    transfers = []
+    if TRANSFERS_PATH.exists():
+        with open(TRANSFERS_PATH) as f:
+            transfers = json.load(f)
+
+    if squad or transfers:
+        st.header("Squad & Transfers")
+
+        if transfers:
+            st.subheader("Transfer Window Moves")
+            for m in reversed(transfers):
+                is_in = m.get("type") == "in"
+                color = "#28a745" if is_in else "#dc3545"
+                label = "IN &#9650;" if is_in else "OUT &#9660;"
+                st.markdown(
+                    f'<div class="match-card" style="border-left-color: {color};">'
+                    f'<div class="date">{m.get("date", "")}</div>'
+                    f'<div class="teams">'
+                    f'<span class="result-badge" style="background:{color};">{label}</span>'
+                    f'&nbsp;<strong>{m.get("name", "")}</strong>'
+                    f'&nbsp;<span style="color:#888;">{m.get("position", "")}</span>'
+                    f'</div></div>',
+                    unsafe_allow_html=True,
+                )
+
+        if squad:
+            st.subheader(f"Current Squad ({len(squad)})")
+            sq_df = pd.DataFrame(squad)
+            for col in ["number", "name", "position", "nationality"]:
+                if col not in sq_df.columns:
+                    sq_df[col] = ""
+            sq_df = sq_df[["number", "name", "position", "nationality"]]
+            sq_df.columns = ["No", "Player", "Position", "Nationality"]
+            st.dataframe(sq_df, use_container_width=True, hide_index=True)
+            st.caption("Squad via TheSportsDB free tier (roster may be partial).")
 
     # --- Opponent records ---
     st.header("Record by Opponent")

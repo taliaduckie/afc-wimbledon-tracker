@@ -15,13 +15,10 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
+from src.season import AUTO_PROMOTION, PLAYOFFS, RELEGATION_START
+
 STANDINGS_PATH = Path(__file__).parent.parent / "data" / "standings.json"
 TEAM = "AFC Wimbledon"
-
-# League One zones (24-team league)
-AUTO_PROMOTION = (1, 2)
-PLAYOFFS = (3, 6)
-RELEGATION_START = 21  # 21-24 relegated
 
 FORM_COLORS = {"W": "green", "D": "yellow", "L": "red"}
 

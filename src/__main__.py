@@ -11,6 +11,8 @@ Usage:
     python -m src opponents --big-results
     python -m src fixtures
     python -m src fixtures --next 3
+    python -m src standings
+    python -m src standings --top 6
 """
 
 import argparse
@@ -37,6 +39,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     fixtures = sub.add_parser("fixtures", help="Upcoming fixtures")
     fixtures.add_argument("--next", type=int, dest="limit", help="Show only the next N fixtures")
+
+    standings = sub.add_parser("standings", help="Full league table")
+    standings.add_argument("--top", type=int, help="Show only the top N teams")
 
     return parser
 
@@ -93,6 +98,10 @@ def main():
         from src.fixtures import fetch_upcoming, display
         matches = fetch_upcoming(limit=args.limit)
         display(matches)
+
+    elif args.action == "standings":
+        from src.standings import load_standings, display
+        display(load_standings(), top=args.top)
 
 
 if __name__ == "__main__":

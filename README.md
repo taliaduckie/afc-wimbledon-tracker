@@ -24,6 +24,8 @@ python -m src opponents --top 5                # hardest opponents
 python -m src opponents --big-results          # biggest wins and losses
 python -m src fixtures                         # upcoming fixtures
 python -m src fixtures --next 3                # next N fixtures
+python -m src standings                        # full league table
+python -m src standings --top 6                # top N teams
 ```
 
 ### Dashboard

@@ -237,16 +237,35 @@ with left:
     if standings:
         st.header("League Standings")
         st_df = pd.DataFrame(standings)
-        st_df = st_df[["Pos", "team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"]]
-        st_df.columns = ["#", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"]
+        st_df["Form"] = st_df.get("Form", "")
+        st_df = st_df[["Pos", "team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts", "Form"]]
+        st_df.columns = ["#", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts", "Form"]
 
-        def highlight_wimbledon(row):
+        # League One zones (matches src/standings.py)
+        AUTO_PROMOTION = (1, 2)
+        PLAYOFFS = (3, 6)
+        RELEGATION_START = 21
+
+        def zone_style(pos):
+            if AUTO_PROMOTION[0] <= pos <= AUTO_PROMOTION[1]:
+                return "background-color: #d4f7d4"  # auto promotion
+            if PLAYOFFS[0] <= pos <= PLAYOFFS[1]:
+                return "background-color: #eafbea"  # playoffs
+            if pos >= RELEGATION_START:
+                return "background-color: #fdd"  # relegation
+            return ""
+
+        def highlight_rows(row):
             if TEAM in row["Team"]:
                 return [f"background-color: {BLUE}; color: {YELLOW}; font-weight: bold"] * len(row)
-            return [""] * len(row)
+            return [zone_style(row["#"])] * len(row)
 
-        styled = st_df.style.apply(highlight_wimbledon, axis=1).format({"GD": "{:+d}"})
+        styled = st_df.style.apply(highlight_rows, axis=1).format({"GD": "{:+d}"})
         st.dataframe(styled, use_container_width=True, hide_index=True, height=min(len(standings) * 35 + 40, 900))
+        st.caption(
+            ":green[**auto promotion** (1–2)] &nbsp;•&nbsp; :green[playoffs (3–6)] "
+            "&nbsp;•&nbsp; :red[relegation (21–24)]"
+        )
 
     # --- Opponent records ---
     st.header("Record by Opponent")

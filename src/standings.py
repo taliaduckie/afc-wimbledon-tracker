@@ -47,7 +47,7 @@ def _pos_text(pos: int) -> Text:
     return Text(str(pos))
 
 
-def display(standings: list[dict], top: int | None = None):
+def display(standings: list[dict], top: int | None = None, meta: dict | None = None):
     console = Console()
     if not standings:
         console.print("[dim]No standings found. Run 'python -m src fetch' first.[/dim]")
@@ -55,7 +55,10 @@ def display(standings: list[dict], top: int | None = None):
 
     rows = standings[:top] if top else standings
 
-    table = Table(title="League One — Standings", title_style="bold cyan", expand=False)
+    name = (meta or {}).get("league_name", "League One")
+    label = f" {meta['season_label']}" if meta and meta.get("season_label") else ""
+    title = f"{name}{label} — Standings"
+    table = Table(title=title, title_style="bold cyan", expand=False)
     table.add_column("#", justify="right")
     table.add_column("Team")
     for col in ["P", "W", "D", "L", "GF", "GA", "GD", "Pts"]:

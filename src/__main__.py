@@ -1,11 +1,12 @@
 """
-Unified CLI for AFC Wimbledon Tracker.
+Unified CLI for AFC Wimbledon Tracker
 
 Usage:
     python -m src fetch
     python -m src fetch --season 2024 --league E3
     python -m src table
     python -m src table --last 10
+    python -m src table --season 2024 --league E3
     python -m src opponents
     python -m src opponents --top 5
     python -m src opponents --big-results
@@ -13,6 +14,9 @@ Usage:
     python -m src fixtures --next 3
     python -m src standings
     python -m src standings --top 6
+    python -m src players
+    python -m src players --fetch
+    python -m src players --transfers
 """
 
 import argparse
@@ -32,18 +36,39 @@ def build_parser() -> argparse.ArgumentParser:
 
     table = sub.add_parser("table", help="Season summary table")
     table.add_argument("--last", type=int, default=0, help="Show stats for last N matches only")
+    table.add_argument("--season", type=int, help="View another season live (default: cached)")
+    table.add_argument("--league", help="League code for --season (default: E2)")
 
     opponents = sub.add_parser("opponents", help="Record by opponent")
     opponents.add_argument("--top", type=int, help="Show only the N hardest opponents")
     opponents.add_argument("--big-results", action="store_true", help="Biggest wins and losses")
+    opponents.add_argument("--season", type=int, help="View another season live (default: cached)")
+    opponents.add_argument("--league", help="League code for --season (default: E2)")
 
     fixtures = sub.add_parser("fixtures", help="Upcoming fixtures")
     fixtures.add_argument("--next", type=int, dest="limit", help="Show only the next N fixtures")
 
     standings = sub.add_parser("standings", help="Full league table")
     standings.add_argument("--top", type=int, help="Show only the top N teams")
+    standings.add_argument("--season", type=int, help="View another season live (default: cached)")
+    standings.add_argument("--league", help="League code for --season (default: E2)")
+
+    players = sub.add_parser("players", help="Squad and transfer window moves")
+    players.add_argument("--fetch", action="store_true", help="Fetch latest squad and record any moves")
+    players.add_argument("--transfers", action="store_true", help="Show the transfer movement log")
 
     return parser
+
+
+def _live_dataset(season: int, league: str):
+    """Fetch one season live -> (results, standings, meta)"""
+    from src.fetch_results import fetch_season_csv, summarize, build_standings
+    from src.season import build_meta
+    rows = fetch_season_csv(season, league)
+    matches = [m for m in (summarize(r) for r in rows) if m is not None]
+    matches.sort(key=lambda m: m["date"])
+    standings = build_standings(rows)
+    return matches, standings, build_meta(standings, season, league)
 
 
 def main():
@@ -55,8 +80,9 @@ def main():
         return
 
     if args.action == "fetch":
-        from src.fetch_results import fetch_season_csv, summarize, build_standings, DATA_DIR, DATA_PATH, STANDINGS_PATH
         import json
+        from src.fetch_results import fetch_season_csv, summarize, build_standings, DATA_DIR, DATA_PATH, STANDINGS_PATH
+        from src.season import build_meta, save_meta
         rows = fetch_season_csv(args.season, args.league)
         matches = [summarize(r) for r in rows]
         matches = [m for m in matches if m is not None]
@@ -69,39 +95,76 @@ def main():
         with open(STANDINGS_PATH, "w") as f:
             json.dump(standings, f, indent=2)
         print(f"Saved {len(standings)}-team standings to {STANDINGS_PATH}")
+        meta = build_meta(standings, args.season, args.league)
+        save_meta(meta)
+        state = "complete" if meta["complete"] else "in progress"
+        print(f"Season: {meta['league_name']} {meta['season_label']} ({state})")
 
     elif args.action == "table":
-        from src.league_table import load_results, build_table, display, form_string
-        results = load_results()
+        from src.league_table import build_table, display, form_string, load_results
+        from src.season import load_meta, takeaway
+        if args.season is not None or args.league is not None:
+            results, standings, meta = _live_dataset(args.season or 2025, args.league or "E2")
+        else:
+            from src.standings import load_standings
+            results, standings, meta = load_results(), load_standings(), load_meta()
         if not results:
             print("No results found. Run 'python -m src fetch' first.")
             sys.exit(1)
         subset = results[-args.last:] if args.last else results
-        title = f"AFC Wimbledon — Last {args.last} Matches" if args.last else "AFC Wimbledon — Season Summary"
-        stats = build_table(subset)
-        display(stats, title=title)
+        label = f" ({meta['season_label']})" if meta and not args.last else ""
+        title = f"AFC Wimbledon — Last {args.last} Matches" if args.last else f"AFC Wimbledon — Season Summary{label}"
+        display(build_table(subset), title=title)
         print(f"\nForm (last 5): {form_string(results)}")
+        line = takeaway(standings, meta) if standings else ""
+        if line:
+            print(line)
 
     elif args.action == "opponents":
-        from src.opponent_stats import load_results, build_opponent_records, display_records, display_big_results
-        results = load_results()
+        from src.opponent_stats import build_opponent_records, display_records, display_big_results, load_results
+        if args.season is not None or args.league is not None:
+            results, _, _ = _live_dataset(args.season or 2025, args.league or "E2")
+        else:
+            results = load_results()
         if not results:
             print("No results found. Run 'python -m src fetch' first.")
             sys.exit(1)
         if args.big_results:
             display_big_results(results)
         else:
-            records = build_opponent_records(results)
-            display_records(records, top_n=args.top)
+            display_records(build_opponent_records(results), top_n=args.top)
 
     elif args.action == "fixtures":
         from src.fixtures import fetch_upcoming, display
-        matches = fetch_upcoming(limit=args.limit)
-        display(matches)
+        display(fetch_upcoming(limit=args.limit))
 
     elif args.action == "standings":
         from src.standings import load_standings, display
-        display(load_standings(), top=args.top)
+        from src.season import load_meta, takeaway
+        if args.season is not None or args.league is not None:
+            _, standings, meta = _live_dataset(args.season or 2025, args.league or "E2")
+        else:
+            standings, meta = load_standings(), load_meta()
+        display(standings, top=args.top, meta=meta)
+        line = takeaway(standings, meta)
+        if line:
+            from rich.console import Console
+            Console().print(f"[bold]{line}[/bold]")
+
+    elif args.action == "players":
+        from src.squad import display_squad, display_transfers, fetch_and_record, load_squad, load_transfers
+        if args.transfers:
+            display_transfers(load_transfers())
+        elif args.fetch:
+            squad, moves = fetch_and_record()
+            display_squad(squad)
+            display_transfers(moves, title="Moves detected this fetch")
+        else:
+            squad = load_squad()
+            if not squad:
+                print("No squad cached. Run 'python -m src players --fetch' first.")
+                sys.exit(1)
+            display_squad(squad)
 
 
 if __name__ == "__main__":

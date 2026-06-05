@@ -11,10 +11,21 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from src.season import (
+    AUTO_PROMOTION,
+    PLAYOFFS,
+    RELEGATION_START,
+    load_meta,
+    status_label,
+    takeaway,
+)
+
 DATA_DIR = Path(__file__).parent / "data"
 RESULTS_PATH = DATA_DIR / "results.json"
 STANDINGS_PATH = DATA_DIR / "standings.json"
 BADGES_PATH = DATA_DIR / "badges.json"
+SQUAD_PATH = DATA_DIR / "squad.json"
+TRANSFERS_PATH = DATA_DIR / "transfers.json"
 TEAM = "AFC Wimbledon"
 
 st.set_page_config(page_title="Wombles Tracker", page_icon="\u26bd", layout="wide")
@@ -145,17 +156,35 @@ if STANDINGS_PATH.exists():
             wimbledon_pos = row
             break
 
+meta = load_meta()
+status = status_label(meta)
+
+if status:
+    final = meta and meta.get("complete")
+    chip_bg = "#888" if final else "#28a745"
+    st.markdown(
+        f'<div style="display:inline-block; background:{chip_bg}; color:white; '
+        f'padding:4px 12px; border-radius:14px; font-weight:bold; font-size:0.85em; margin-bottom:8px;">'
+        f'{status}</div>',
+        unsafe_allow_html=True,
+    )
+
 if wimbledon_pos:
     pos = wimbledon_pos["Pos"]
     suffix = {1: "st", 2: "nd", 3: "rd"}.get(pos if pos < 20 else pos % 10, "th")
+    league = (meta or {}).get("league_name", "League One")
     st.markdown(
         f'<div style="display:inline-block; background:{BLUE}; color:{YELLOW}; '
         f'padding:6px 16px; border-radius:20px; font-weight:bold; font-size:1.1em; margin-bottom:10px;">'
-        f'{pos}{suffix} in League One &bull; {wimbledon_pos["Pts"]} pts &bull; '
+        f'{pos}{suffix} in {league} &bull; {wimbledon_pos["Pts"]} pts &bull; '
         f'GD {wimbledon_pos["GD"]:+d}'
         f'</div>',
         unsafe_allow_html=True,
     )
+
+line = takeaway(standings, meta)
+if line:
+    st.markdown(f"**{line}**")
 
 st.caption("GO WOMBLES")
 

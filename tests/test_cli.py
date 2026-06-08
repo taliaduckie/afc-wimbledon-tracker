@@ -11,7 +11,7 @@ from src.__main__ import build_parser
 def test_all_subcommands_registered():
     parser = build_parser()
     sub = next(a for a in parser._actions if a.dest == "action")
-    assert set(sub.choices) == {"fetch", "table", "opponents", "fixtures", "standings"}
+    assert set(sub.choices) == {"fetch", "table", "opponents", "fixtures", "standings", "players"}
 
 
 def test_standings_parses_with_top():

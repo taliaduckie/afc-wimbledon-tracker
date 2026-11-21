@@ -15,8 +15,13 @@ from pathlib import Path
 
 import requests
 
+if __package__:
+    from .season import DEFAULT_LEAGUE, REQUEST_TIMEOUT, current_season_start
+else:  # Keep direct script entry points working.
+    from season import DEFAULT_LEAGUE, REQUEST_TIMEOUT, current_season_start
+
 TEAM = "AFC Wimbledon"
-LEAGUE = "E2"  # League One
+LEAGUE = DEFAULT_LEAGUE
 BASE_URL = "https://www.football-data.co.uk/mmz4281"
 DATA_DIR = Path(__file__).parent.parent / "data"
 DATA_PATH = DATA_DIR / "results.json"
@@ -31,7 +36,7 @@ def season_code(start_year: int) -> str:
 def fetch_season_csv(start_year: int, league: str = LEAGUE) -> list[dict]:
     """Download and parse one season's CSV."""
     url = f"{BASE_URL}/{season_code(start_year)}/{league}.csv"
-    resp = requests.get(url)
+    resp = requests.get(url, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     reader = csv.DictReader(io.StringIO(resp.text))
     return list(reader)
@@ -135,8 +140,8 @@ def build_standings(rows: list[dict]) -> list[dict]:
     return table
 
 
-def fetch_matches(start_year: int = 2025, league: str = LEAGUE) -> list[dict]:
-    rows = fetch_season_csv(start_year, league)
+def fetch_matches(start_year: int | None = None, league: str = LEAGUE) -> list[dict]:
+    rows = fetch_season_csv(start_year if start_year is not None else current_season_start(), league)
     matches = [summarize(r) for r in rows]
     return [m for m in matches if m is not None]
 
@@ -145,8 +150,8 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--season", type=int, default=2025,
-                        help="Season start year, e.g. 2024 for 2024/25 (default: 2025)")
+    parser.add_argument("--season", type=int, default=current_season_start(),
+                        help="Season start year, e.g. 2024 for 2024/25 (default: current season)")
     parser.add_argument("--league", default=LEAGUE,
                         help="League code: E0=PL, E1=Championship, E2=League One, E3=League Two (default: E2)")
     args = parser.parse_args()

@@ -32,6 +32,8 @@ python -m src players --fetch                  # refresh squad, record any moves
 python -m src players --transfers              # transfer window movement log
 ```
 
+The tracker rolls into a new season on July 1. The configured default division is League One; update that setting if the club changes division. The dashboard flags earlier-season caches.
+
 The `table`, `standings`, and `opponents` commands read the cached season by
 default; pass `--season`/`--league` to pull a different one live. `table` and
 `standings` print a one-line takeaway (e.g. "Finished 19th in League One — 53

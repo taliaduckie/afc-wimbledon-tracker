@@ -1,7 +1,10 @@
 """Smoke tests for the unified CLI argument parser (src/__main__.py)."""
 
+import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -32,3 +35,15 @@ def test_no_action_is_allowed():
     parser = build_parser()
     args = parser.parse_args([])
     assert args.action is None
+
+
+@pytest.mark.parametrize("name", ["fetch_results", "fixtures", "squad"])
+def test_direct_script_help(name):
+    result = subprocess.run(
+        [sys.executable, "-E", f"src/{name}.py", "--help"],
+        cwd=Path(__file__).resolve().parents[1],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "usage:" in result.stdout

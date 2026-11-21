@@ -15,13 +15,17 @@ import time
 from datetime import datetime
 
 import requests
+
+if __package__:
+    from .season import REQUEST_TIMEOUT, current_season_start, provider_season
+else:  # Keep direct script entry points working.
+    from season import REQUEST_TIMEOUT, current_season_start, provider_season
 from rich.console import Console
 from rich.table import Table
 
 TEAM = "AFC Wimbledon"
 TEAM_ID = 134241
 LEAGUE_ID = 4396  # English League 1
-SEASON = "2025-2026"
 TOTAL_ROUNDS = 46
 BASE_URL = "https://www.thesportsdb.com/api/v1/json/3"
 
@@ -29,18 +33,22 @@ BASE_URL = "https://www.thesportsdb.com/api/v1/json/3"
 def _last_round() -> int:
     """Get the most recent round played from the last results endpoint."""
     url = f"{BASE_URL}/eventslast.php?id={TEAM_ID}"
-    resp = requests.get(url)
+    resp = requests.get(url, timeout=REQUEST_TIMEOUT)
     if resp.status_code == 200 and resp.text.strip():
         results = resp.json().get("results") or []
         if results:
-            return int(results[0].get("intRound", 1))
+            latest = results[0]
+            season = latest.get("strSeason")
+            if season and season != provider_season(current_season_start()):
+                return 1
+            return int(latest.get("intRound") or 1)
     return 1
 
 
 def _fetch_round(round_num: int) -> list[dict]:
     """Fetch events for a single round, returning [] on error."""
-    url = f"{BASE_URL}/eventsround.php?id={LEAGUE_ID}&r={round_num}&s={SEASON}"
-    resp = requests.get(url)
+    url = f"{BASE_URL}/eventsround.php?id={LEAGUE_ID}&r={round_num}&s={provider_season(current_season_start())}"
+    resp = requests.get(url, timeout=REQUEST_TIMEOUT)
     if resp.status_code != 200 or not resp.text.strip():
         return []
     try:

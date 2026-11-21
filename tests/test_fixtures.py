@@ -48,29 +48,49 @@ def _fake_get(url):
 
 
 def test_last_round_reads_intround(monkeypatch):
-    monkeypatch.setattr(fixtures.requests, "get", lambda u: FakeResp({"results": [{"intRound": "33"}]}))
+    monkeypatch.setattr(fixtures.requests, "get", lambda u, **kwargs: FakeResp({"results": [{"intRound": "33"}]}))
     assert fixtures._last_round() == 33
 
 
 def test_last_round_defaults_to_one_on_empty(monkeypatch):
-    monkeypatch.setattr(fixtures.requests, "get", lambda u: FakeResp({"results": []}))
+    monkeypatch.setattr(fixtures.requests, "get", lambda u, **kwargs: FakeResp({"results": []}))
     assert fixtures._last_round() == 1
+
+
+def test_last_round_ignores_previous_season(monkeypatch):
+    monkeypatch.setattr(fixtures, "current_season_start", lambda: 2026)
+    monkeypatch.setattr(fixtures.requests, "get", lambda *_args, **_kwargs: FakeResp({
+        "results": [{"intRound": "46", "strSeason": "2025-2026"}],
+    }))
+    assert fixtures._last_round() == 1
+
+
+def test_fetch_round_uses_current_season_and_a_timeout(monkeypatch):
+    monkeypatch.setattr(fixtures, "current_season_start", lambda: 2026)
+
+    def fake_get(url, *, timeout):
+        assert timeout == fixtures.REQUEST_TIMEOUT
+        assert parse_qs(urlparse(url).query)["s"] == ["2026-2027"]
+        return FakeResp({"events": []})
+
+    monkeypatch.setattr(fixtures.requests, "get", fake_get)
+    assert fixtures._fetch_round(1) == []
 
 
 def test_fetch_round_returns_events(monkeypatch):
     monkeypatch.setattr(fixtures.requests, "get",
-                        lambda u: FakeResp({"events": [_event(fixtures.TEAM, "Wigan", FUTURE)]}))
+                        lambda u, **kwargs: FakeResp({"events": [_event(fixtures.TEAM, "Wigan", FUTURE)]}))
     events = fixtures._fetch_round(20)
     assert len(events) == 1 and events[0]["strHomeTeam"] == fixtures.TEAM
 
 
 def test_fetch_round_empty_on_error(monkeypatch):
-    monkeypatch.setattr(fixtures.requests, "get", lambda u: FakeResp({}, status=500, text=""))
+    monkeypatch.setattr(fixtures.requests, "get", lambda u, **kwargs: FakeResp({}, status=500, text=""))
     assert fixtures._fetch_round(20) == []
 
 
 def test_fetch_upcoming_keeps_only_our_future_unplayed(monkeypatch):
-    monkeypatch.setattr(fixtures.requests, "get", lambda u: _fake_get(u))
+    monkeypatch.setattr(fixtures.requests, "get", lambda u, **kwargs: _fake_get(u))
     monkeypatch.setattr(fixtures.time, "sleep", lambda *_: None)
     matches = fixtures.fetch_upcoming(limit=1)
     assert len(matches) == 1

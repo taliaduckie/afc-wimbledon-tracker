@@ -13,6 +13,11 @@ from datetime import datetime
 from pathlib import Path
 
 import requests
+
+if __package__:
+    from .season import REQUEST_TIMEOUT
+else:  # Keep direct script entry points working.
+    from season import REQUEST_TIMEOUT
 from rich.console import Console
 from rich.table import Table
 
@@ -39,7 +44,7 @@ def parse_player(raw: dict) -> dict:
 def fetch_squad() -> list[dict]:
     """Fetch the current roster from TheSportsDB"""
     url = f"{BASE_URL}/lookup_all_players.php?id={TEAM_ID}"
-    resp = requests.get(url)
+    resp = requests.get(url, timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
     players = resp.json().get("player") or []
     return [parse_player(p) for p in players]
@@ -161,6 +166,6 @@ if __name__ == "__main__":
     elif args.fetch:
         squad, moves = fetch_and_record()
         display_squad(squad)
-        display_transfers(moves, title="Moves detected this fetch")
+        display_transfers(moves, title="Possible moves inferred from this snapshot")
     else:
         display_squad(load_squad())

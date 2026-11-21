@@ -20,6 +20,7 @@ Usage:
 """
 
 import argparse
+from src.season import DEFAULT_LEAGUE, current_season_start
 import sys
 
 
@@ -31,8 +32,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="action")
 
     fetch = sub.add_parser("fetch", help="Fetch match results")
-    fetch.add_argument("--season", type=int, default=2025, help="Season start year (default: 2025)")
-    fetch.add_argument("--league", default="E2", help="League code: E0/E1/E2/E3 (default: E2)")
+    fetch.add_argument("--season", type=int, default=current_season_start(), help="Season start year (default: current season)")
+    fetch.add_argument("--league", default=DEFAULT_LEAGUE, help="League code: E0/E1/E2/E3 (default: E2)")
 
     table = sub.add_parser("table", help="Season summary table")
     table.add_argument("--last", type=int, default=0, help="Show stats for last N matches only")
@@ -104,7 +105,7 @@ def main():
         from src.league_table import build_table, display, form_string, load_results
         from src.season import load_meta, takeaway
         if args.season is not None or args.league is not None:
-            results, standings, meta = _live_dataset(args.season or 2025, args.league or "E2")
+            results, standings, meta = _live_dataset(args.season or current_season_start(), args.league or DEFAULT_LEAGUE)
         else:
             from src.standings import load_standings
             results, standings, meta = load_results(), load_standings(), load_meta()
@@ -123,7 +124,7 @@ def main():
     elif args.action == "opponents":
         from src.opponent_stats import build_opponent_records, display_records, display_big_results, load_results
         if args.season is not None or args.league is not None:
-            results, _, _ = _live_dataset(args.season or 2025, args.league or "E2")
+            results, _, _ = _live_dataset(args.season or current_season_start(), args.league or DEFAULT_LEAGUE)
         else:
             results = load_results()
         if not results:
@@ -142,7 +143,7 @@ def main():
         from src.standings import load_standings, display
         from src.season import load_meta, takeaway
         if args.season is not None or args.league is not None:
-            _, standings, meta = _live_dataset(args.season or 2025, args.league or "E2")
+            _, standings, meta = _live_dataset(args.season or current_season_start(), args.league or DEFAULT_LEAGUE)
         else:
             standings, meta = load_standings(), load_meta()
         display(standings, top=args.top, meta=meta)
@@ -158,7 +159,7 @@ def main():
         elif args.fetch:
             squad, moves = fetch_and_record()
             display_squad(squad)
-            display_transfers(moves, title="Moves detected this fetch")
+            display_transfers(moves, title="Possible moves inferred from this snapshot")
         else:
             squad = load_squad()
             if not squad:

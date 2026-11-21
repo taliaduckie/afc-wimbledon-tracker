@@ -6,10 +6,25 @@ Single source of truth for league names and the League One zones
 """
 
 import json
+from datetime import date
 from pathlib import Path
 
 TEAM = "AFC Wimbledon"
 META_PATH = Path(__file__).parent.parent / "data" / "meta.json"
+
+DEFAULT_LEAGUE = "E2"  # League One for 2026/27; verify if the club changes division
+REQUEST_TIMEOUT = 15
+
+
+def current_season_start(on: date | None = None) -> int:
+    """Use July 1 as the tracker’s season rollover."""
+    on = on or date.today()
+    return on.year if on.month >= 7 else on.year - 1
+
+
+def provider_season(start_year: int) -> str:
+    return f"{start_year}-{start_year + 1}"
+
 
 LEAGUE_NAMES = {
     "E0": "Premier League",

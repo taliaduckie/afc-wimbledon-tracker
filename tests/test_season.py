@@ -99,3 +99,12 @@ def test_takeaway_relegation():
 def test_takeaway_no_wimbledon():
     standings = [{"team": "Other", "Pos": 1, "Pts": 90, "P": 46}]
     assert season.takeaway(standings, None) == ""
+
+
+def test_season_rollover():
+    from datetime import date
+    from src.season import current_season_start, provider_season
+
+    assert current_season_start(date(2026, 6, 30)) == 2025
+    assert current_season_start(date(2026, 7, 1)) == 2026
+    assert provider_season(2026) == "2026-2027"

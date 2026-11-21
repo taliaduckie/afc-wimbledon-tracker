@@ -16,6 +16,7 @@ from src.season import (
     PLAYOFFS,
     RELEGATION_START,
     load_meta,
+    current_season_start,
     status_label,
     takeaway,
 )
@@ -157,6 +158,8 @@ if STANDINGS_PATH.exists():
             break
 
 meta = load_meta()
+if meta and meta.get("season") != current_season_start():
+    st.info(f"Showing cached data for {meta.get('season_label', 'a previous season')}. Run `python -m src fetch` to update the results and standings.")
 status = status_label(meta)
 
 if status:
